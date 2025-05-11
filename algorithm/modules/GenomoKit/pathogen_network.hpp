@@ -55,6 +55,11 @@ namespace GenomoKit{
                 this->info = Info(pathogen_id,pathogen_sequence);
                 this->cds_list = cds_list;
             }
+            Node(int node_idx,string pathogen_id, string pathogen_sequence){
+                this->node_idx = node_idx;
+                this->info = Info(pathogen_id,pathogen_sequence);
+                this->cds_list = vector<Cds*>();
+            }
     };
 
     class Graph{
