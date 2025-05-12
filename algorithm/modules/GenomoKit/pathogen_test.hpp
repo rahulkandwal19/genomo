@@ -17,24 +17,24 @@ namespace GenomoKit{
             ZoonosisTestResult result;
 
             int insert_node_on_dna_similarity_connections(Node* test_node,float kmer_threshold,int kmer_size,float alignment_threshold){
+                test_node->node_idx = pathogen_network.graph.insert_node(test_node);
                 //[1.] Find Nodes in Graph that have high KMer Similarity with new node by traversing all 
                 // KMer Based selection is faster (Helpful in rough selection from compleate/large network or dataset).
-                vector<int> matched_nodes_indices = pathogen_network.graph.get_kmer_based_matches(test_node,kmer_threshold,kmer_size);
+                vector<int> matched_nodes_indices = pathogen_network.get_kmer_based_matches(test_node,kmer_threshold,kmer_size);
 
                 //[2.] Find Local_Aligned Subsequence based Simaliraty (Smith-Waterman Algrothem for DNA Strings)
                 //From selected nodes CDS, filter them with high similarity >Threshold using above mentioned Algo.
                 vector<int> final_selected_nodes;
                 GenomoKit::SequenceMatcher sequence_matcher = GenomoKit::SequenceMatcher();
                 for(int current_node_index:matched_nodes_indices){
-                    
+                    if(test_node->node_idx == current_node_index) continue;
                     float similarity_score = -1;
-                    
+
                     //Nodes may have multiple CDS, Hence mean of similarity is computed
                     for(GenomoKit::Cds* cds : pathogen_network.graph.node_list[current_node_index]->cds_list){
                         float score = sequence_matcher.local_alignment_similarity(cds->cds_sequence,
                                                                                   test_node->info.pathogen_sequence);
-                                  
-                                                                                  
+                                                           
                         //Save matched cds for result report                                                           
                         if(score>= alignment_threshold){       
                             result.matched_cds.push_back({cds->cds_id,score});
@@ -45,11 +45,11 @@ namespace GenomoKit{
                         else similarity_score += score;
                     }
                     similarity_score = similarity_score/ pathogen_network.graph.node_list[current_node_index]->cds_list.size();
-
+                    cout<<"Align-Avg : "<<pathogen_network.graph.node_list[current_node_index]->info.pathogen_id<<" "<<similarity_score<<endl;  
 
                 //[3.] Add edges between filtered node and new node.
                     if(similarity_score>= alignment_threshold){
-                        pathogen_network.add_connection(test_node->node_idx,current_node_index,similarity_score);
+                        pathogen_network.add_connection(test_node->node_idx,current_node_index,similarity_score*100);
                     }
                 }
 
