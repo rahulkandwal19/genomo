@@ -17,9 +17,11 @@ namespace GenomoKit{
         public :
             string pathogen_id;
             string pathogen_sequence;
-            Info(string pathogen_id="NAN0000", string pathogen_sequence=""){
+            int threatLevel;
+            Info(string pathogen_id="NAN0000", string pathogen_sequence="", int threatLevel = 3){
                 this->pathogen_id = pathogen_id;
                 this->pathogen_sequence = pathogen_sequence;
+                this->threatLevel = threatLevel;
             }
     };
 
@@ -36,7 +38,7 @@ namespace GenomoKit{
     class Edge{
         public:
             int destination;
-            float weight;
+            int weight;
             Edge(int destination, int weight){
                 this->destination = destination;
                 this->weight = weight;
@@ -50,9 +52,9 @@ namespace GenomoKit{
             vector<Edge*> edge_list;
             vector<Cds*> cds_list;
 
-            Node(int node_idx, string pathogen_id, string pathogen_sequence, vector<Cds*>& cds_list){
+            Node(int node_idx, string pathogen_id, string pathogen_sequence, vector<Cds*>& cds_list,int threat = 4){
                 this->node_idx = node_idx;
-                this->info = Info(pathogen_id,pathogen_sequence);
+                this->info = Info(pathogen_id,pathogen_sequence,threat);
                 this->cds_list = cds_list;
             }
             Node(int node_idx,string pathogen_id, string pathogen_sequence){
@@ -65,20 +67,20 @@ namespace GenomoKit{
     class Graph{
         public:
             vector<Node*> node_list;
-            void insert_node(string pathogen_id, string pathogen_sequence,vector<Cds*>&cds_list){
-                Node* new_node = new Node(node_list.size(),pathogen_id,pathogen_sequence,cds_list);
+            void insert_node(string pathogen_id, string pathogen_sequence,vector<Cds*>&cds_list, int threat = 4){
+                Node* new_node = new Node(node_list.size(),pathogen_id,pathogen_sequence,cds_list, threat);
                 node_list.push_back(new_node);
             }
 
             int insert_node(Node* pathogen_node){
                 Node* new_node = new Node(node_list.size(),pathogen_node->info.pathogen_id,pathogen_node->info.pathogen_sequence,
-                                         pathogen_node->cds_list);
+                                         pathogen_node->cds_list,pathogen_node->info.threatLevel);
                 node_list.push_back(new_node);
                 return new_node->node_idx;
             }
             
     
-            void add_edge(int source_Idx, int destination_Idx, float similarity){
+            void add_edge(int source_Idx, int destination_Idx, int similarity){
                 Edge* new_edge = new Edge(destination_Idx,similarity);
                 node_list[source_Idx]->edge_list.push_back(new_edge);
             }
@@ -129,8 +131,8 @@ namespace GenomoKit{
             Graph graph = Graph();
             PathogenNetwork(){}
             
-            void add_pathogen(string pathogen_id, string pathogen_sequence,vector<Cds*>cds){
-                graph.insert_node(pathogen_id,pathogen_sequence,cds); 
+            void add_pathogen(string pathogen_id, string pathogen_sequence,vector<Cds*>cds,int threat =4){
+                graph.insert_node(pathogen_id,pathogen_sequence,cds,threat); 
             }
             
             void add_connection(int source_idx,int destination_idx,int similarityScore){
@@ -188,7 +190,7 @@ namespace GenomoKit{
                 for (Node* node : nodes) {
                     file << node->node_idx << "|";
                     file<< node->info.pathogen_id << "|";
-                    file<< "["<<"data1"<<","<<"data2"<< "]:\n";
+                    file<< "["<<node->info.threatLevel<<","<<"data2"<< "]:\n";
                     file<<node->info.pathogen_sequence<<":\n";
                     
                     bool first = true;
@@ -248,6 +250,9 @@ namespace GenomoKit{
                     int current_idx = stoi(data_segment.substr(0, seprator1));
                     string id = data_segment.substr(seprator1 + 1, seprator2 - seprator1 - 1);
                    
+                    int seprator3 = data_segment.find('[', seprator2 + 1);
+                    int seprator4 = data_segment.find(',', seprator3 + 1);
+                    int threat = stoi(data_segment.substr(seprator3+1, seprator4));
                     //Retrive Data from sequence segment
                     string sequence = sequence_segment.substr(1,sequence_segment.size()-1);
 
@@ -266,7 +271,7 @@ namespace GenomoKit{
                     }
                     
                     // Add Node to Graph
-                    graph.insert_node(id,sequence,pathogen_cds);
+                    graph.insert_node(id,sequence,pathogen_cds,threat);
 
                     //Retrive edges from edge segment
                     edge_segment = edge_segment.substr(1,sequence_segment.size()-1);
@@ -279,8 +284,7 @@ namespace GenomoKit{
                         int weight = stoi(edge.substr(seprator+1, edge.size() -seprator - 2));
                         
                         //Add Edges in graph
-                        float weight_floating = double(weight);
-                        graph.add_edge(current_idx,destination,weight_floating);
+                        graph.add_edge(current_idx,destination,weight);
                     }
                 }                 
             }

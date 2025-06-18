@@ -8,6 +8,7 @@ namespace GenomoKit{
     class ZoonosisTestResult{
         public:
             vector<pair<string,float>> matched_cds;
+            vector<vector<int>> paths;
     };
     
     class ZoonosisTest{
@@ -15,7 +16,7 @@ namespace GenomoKit{
             GenomoKit::PathogenNetwork pathogen_network;
             GenomoKit::Node *test_node; 
             ZoonosisTestResult result;
-
+            
             int insert_node_on_dna_similarity_connections(Node* test_node,float kmer_threshold,int kmer_size,float alignment_threshold){
                 test_node->node_idx = pathogen_network.graph.insert_node(test_node);
                 //[1.] Find Nodes in Graph that have high KMer Similarity with new node by traversing all 
@@ -47,7 +48,7 @@ namespace GenomoKit{
                     similarity_score = similarity_score/ pathogen_network.graph.node_list[current_node_index]->cds_list.size();
                     cout<<"Align-Avg : "<<pathogen_network.graph.node_list[current_node_index]->info.pathogen_id<<" "<<similarity_score<<endl;  
 
-                //[3.] Add edges between filtered node and new node.
+                    //[3.] Add edges between filtered node and new node.
                     if(similarity_score>= alignment_threshold){
                         pathogen_network.add_connection(test_node->node_idx,current_node_index,similarity_score*100);
                     }
@@ -55,6 +56,96 @@ namespace GenomoKit{
 
                 return test_node->node_idx;
             }
+
+            vector<pair<int,int>> dijkstra(int src){
+                priority_queue<vector<int>, vector<vector<int>>, greater<vector<int>>> pq;
+
+                int V = pathogen_network.graph.node_list.size();
+                vector<int> dist(V, INT_MAX);
+
+                pq.push({0, src});
+                dist[src] = 0;
+
+                while (!pq.empty()){
+                    int u = pq.top()[1];
+                    pq.pop();
+
+                    for (auto x : pathogen_network.graph.node_list[u]->edge_list){
+                        int v = x->destination;
+                        int weight = 10000 -  x->weight;
+
+                        if (dist[v] > dist[u] + weight){
+                            
+                            dist[v] = dist[u] + weight;
+                            pq.push({dist[v], v});
+                        }
+                    }
+                }
+
+                vector<pair<int,int>> result;
+                for(int i=0;i<V;i++){
+                    result.push_back({dist[i],i});
+                }
+
+                sort(result.begin(),result.end());
+
+                return result;
+        }
+
+        vector<int> dijkstraShortestPath(int src, int dest) {
+            int n = pathogen_network.graph.node_list.size();
+            vector<int> dist(n, INT_MAX);
+            vector<int> parent(n, -1);
+            priority_queue<vector<int>, vector<vector<int>>, greater<vector<int>>> pq;
+            dist[src] = 0;
+            pq.push({src,0});
+
+            while (!pq.empty()) {
+                int current = pq.top()[0];
+                pq.pop();
+
+                if (current == dest) break;
+
+                for (auto i : pathogen_network.graph.node_list[current]->edge_list) {
+                    int weight = 10000 - i->weight;
+                    int v = i->destination;
+
+                    int newDist = dist[current] + weight;
+                    if (newDist < dist[v]) {
+                        dist[v] = newDist;
+                        parent[v] = current;
+                        pq.push({v, newDist});
+                    }
+                }
+            }
+
+            vector<int> path;
+            for (int at = dest; at != -1; at = parent[at]) {
+                path.push_back(at);
+            }
+            reverse(path.begin(), path.end());
+            return (path.front() == src) ? path : vector<int>{};
+        }
+
+        void getPossiblePaths(int src, int k, int threat){
+            vector<pair<int,int>> shotestNodes = dijkstra(src);
+            vector<int> destination;
+            for(int i = 1; i< shotestNodes.size();i++){
+                if(destination.size()==k) break;
+                int nodeIdx = shotestNodes[i].second;
+                if(pathogen_network.graph.node_list[nodeIdx]->info.threatLevel >= threat){
+                    destination.push_back(nodeIdx);
+                }
+            }
+
+            vector<vector<int>> paths;
+            for(int i: destination){
+                paths.push_back(dijkstraShortestPath(src,i));
+            }
+            
+            this->result.paths =  paths;
+        }
+
 
         public:
 
@@ -64,14 +155,13 @@ namespace GenomoKit{
                 this->pathogen_network = pathogen_network;
             }
 
-            ZoonosisTestResult is_pathogen_zoonotic(float kmer_threshold,int kmer_size,float alignment_threshold){
+            ZoonosisTestResult is_pathogen_zoonotic(float kmer_threshold,int kmer_size,float alignment_threshold, int threat = 4, int maxPaths=1){
                 //[1.] Insert new node to correct place in graph network on basis of dna similarity score
                 //While saving matching cds in ZoonosisTestResult object
                 insert_node_on_dna_similarity_connections(test_node,kmer_threshold,kmer_size,alignment_threshold);
 
                 //[2.] Find Shortest paths to zoonotic nodes
-
-                //[3.] Estimate Zoonosis 
+                getPossiblePaths(test_node->node_idx,maxPaths,threat);
 
                 return result;
             }

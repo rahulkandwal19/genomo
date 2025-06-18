@@ -100,7 +100,7 @@ namespace GenomoKit{
 
             //It is a squence alignment based similarity score that utilizes 
             //smith-waterman algorithm to align strings and compute similarity
-            //on local subsequence matching using no og matches computation.
+            //on local subsequence matching using no of matches in aligned sequence.
             double local_alignment_similarity(string sequence1, string sequence2){
                 vector<string> aligned_sequences = smith_waterman_local_align(sequence1,sequence2);
 
