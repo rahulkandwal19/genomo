@@ -8,7 +8,7 @@ namespace GenomoKit{
     class ZoonosisTestResult{
         public:
             vector<pair<string,float>> matched_cds;
-            vector<vector<int>> paths;
+            vector<vector<string>> paths;
     };
     
     class ZoonosisTest{
@@ -92,7 +92,7 @@ namespace GenomoKit{
                 return result;
         }
 
-        vector<int> dijkstraShortestPath(int src, int dest) {
+        vector<string> dijkstraShortestPath(int src, int dest) {
             int n = pathogen_network.graph.node_list.size();
             vector<int> dist(n, INT_MAX);
             vector<int> parent(n, -1);
@@ -119,12 +119,14 @@ namespace GenomoKit{
                 }
             }
 
-            vector<int> path;
+            vector<string> path;
             for (int at = dest; at != -1; at = parent[at]) {
-                path.push_back(at);
+                path.push_back(pathogen_network.graph.node_list[at]->info.pathogen_id);
             }
             reverse(path.begin(), path.end());
-            return (path.front() == src) ? path : vector<int>{};
+
+            string srcID = pathogen_network.graph.node_list[src]->info.pathogen_id;
+            return (path.front() == srcID) ? path : vector<string>{};
         }
 
         void getPossiblePaths(int src, int k, int threat){
@@ -138,7 +140,7 @@ namespace GenomoKit{
                 }
             }
 
-            vector<vector<int>> paths;
+            vector<vector<string>> paths;
             for(int i: destination){
                 paths.push_back(dijkstraShortestPath(src,i));
             }
