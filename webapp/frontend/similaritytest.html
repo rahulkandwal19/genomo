@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sequence Similarity Test | Genomo</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="pages/landing_page/similarity.js" defer></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .sequence-input {
+      min-height: 150px;
+      font-family: monospace;
+    }
+    .similarity-meter {
+      height: 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      background-color: #e5e7eb;
+    }
+    .similarity-fill {
+      height: 100%;
+      transition: width 0.8s ease;
+      background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+    }
+    .progress-bar {
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+  <div class="min-h-screen flex">
+    <!-- Sidebar -->
+    <div class="w-64 bg-indigo-800 text-white p-4 hidden md:block">
+      <div class="flex items-center space-x-2 p-4 mb-8">
+        <i class="fas fa-dna text-2xl text-indigo-300"></i>
+        <h1 class="text-xl font-bold">Genomo</h1>
+      </div>
+      <nav>
+        <a href="/index.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-indigo-700 text-indigo-200 mb-2">
+          <i class="fas fa-flask w-6 text-center"></i>
+          <span>Analysis Dashboard</span>
+        </a>
+        <a href="/database.html" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-indigo-700 text-indigo-200 mb-2">
+          <i class="fas fa-database w-6 text-center"></i>
+          <span>Pathogen Database</span>
+        </a>
+        <a href="similaritytest.html" class="flex items-center space-x-3 p-3 rounded-lg bg-indigo-700 text-white mb-2">
+          <i class="fas fa-equals w-6 text-center"></i>
+          <span>Similarity Test</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 p-4 md:p-8">
+      <header class="flex justify-between items-center mb-6 md:mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-900">
+          <i class="fas fa-equals text-indigo-500 mr-2"></i>
+          Sequence Similarity Test
+        </h1>
+      </header>
+
+      <!-- Test Form -->
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6 md:mb-8">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
+          <h2 class="text-xl font-semibold flex items-center">
+            <i class="fas fa-dna mr-2"></i> DNA Sequence Comparison
+          </h2>
+        </div>
+        
+        <form id="similarityForm" class="p-4 md:p-6 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-dna text-indigo-500 mr-1"></i> Sequence A
+              </label>
+              <textarea name="dna1" placeholder="Paste first DNA sequence..." rows="6"
+                        class="w-full p-3 rounded-lg bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition font-mono text-sm sequence-input" required></textarea>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                <i class="fas fa-dna text-purple-500 mr-1"></i> Sequence B
+              </label>
+              <textarea name="dna2" placeholder="Paste second DNA sequence..." rows="6"
+                        class="w-full p-3 rounded-lg bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition font-mono text-sm sequence-input" required></textarea>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">K-mer Size</label>
+              <div class="relative">
+                <input type="number" name="kmerSize" value="3" min="2"  
+                       class="w-full p-2 pl-10 rounded-lg bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition" required>
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500">k=</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Match Threshold</label>
+              <div class="relative">
+                <input type="number" name="threshold" value="0.7" step="0.01" min="0" max="1" 
+                       class="w-full p-2 pl-10 rounded-lg bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition" required>
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span class="text-gray-500">≥</span>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Algorithm</label>
+              <select name="algorithm" class="w-full p-2 rounded-lg bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition">
+                <option value="kmer">K-mer Similarity</option>
+                <option value="alignment">Sequence Alignment</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="flex justify-end space-x-4 pt-4">
+            <button type="button" id="resetBtn" class="px-5 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+              <i class="fas fa-redo mr-2"></i> Reset
+            </button>
+            <button type="submit" id="submitBtn" class="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg text-white hover:from-indigo-700 hover:to-purple-700 transition shadow-md flex items-center">
+              <i class="fas fa-play mr-2"></i> Compare Sequences
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Loading Spinner -->
+      <div id="loadingSpinner" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+          <i class="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+          <p class="text-lg font-medium">Analyzing sequences...</p>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="resultsSection" class="bg-white rounded-xl shadow-lg overflow-hidden hidden">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white">
+          <h2 class="text-xl font-semibold flex items-center">
+            <i class="fas fa-chart-bar mr-2"></i> Similarity Results
+          </h2>
+        </div>
+
+        <div class="p-4 md:p-6">
+          <!-- Summary Card -->
+          <div id="summaryCard" class="bg-indigo-50 rounded-lg p-4 mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+              <div class="mb-4 md:mb-0">
+                <h3 class="font-medium text-indigo-800 text-lg">Similarity Score</h3>
+                <div class="mt-2 flex items-center">
+                  <span id="similarityValue" class="text-4xl font-bold text-indigo-600">0.00</span>
+                  <span class="ml-2 text-gray-600">/ 1.00</span>
+                </div>
+                <div id="similarityText" class="mt-1 text-sm font-medium text-indigo-700">No match</div>
+              </div>
+              
+              <div class="w-full md:w-64">
+                <div class="similarity-meter">
+                  <div id="similarityFill" class="similarity-fill" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-600 mt-1">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-lg mr-4">
+                  <i class="fas fa-ruler text-blue-600 text-xl"></i>
+                </div>
+                <div>
+                  <div class="text-gray-500 text-sm">Sequence Length</div>
+                  <div class="font-medium">
+                    <span id="seqALength">0</span> bp / 
+                    <span id="seqBLength">0</span> bp
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-lg mr-4">
+                  <i class="fas fa-percentage text-green-600 text-xl"></i>
+                </div>
+                <div>
+                  <div class="text-gray-500 text-sm">GC Content</div>
+                  <div class="font-medium">
+                    <span id="seqAGC">0%</span> / 
+                    <span id="seqBGC">0%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-white border border-gray-200 rounded-lg p-4">
+              <div class="flex items-center">
+                <div class="p-3 bg-purple-100 rounded-lg mr-4">
+                  <i class="fas fa-code text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                  <div class="text-gray-500 text-sm">Algorithm</div>
+                  <div id="algorithmUsed" class="font-medium">K-mer</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Match Details -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 class="font-medium text-gray-800 mb-3 flex items-center">
+              <i class="fas fa-info-circle text-indigo-500 mr-2"></i>
+              Detailed Comparison
+            </h3>
+            
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-gray-600">K-mer Similarity</span>
+                  <span id="kmerScore" class="font-medium">0.00</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div id="kmerScoreBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-gray-600">Alignment Score</span>
+                  <span id="alignmentScore" class="font-medium">0.00</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div id="alignmentScoreBar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+              </div>
+              
+              <div class="pt-3">
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Match Status</span>
+                  <span id="matchStatus" class="font-medium px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-sm">Undetermined</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

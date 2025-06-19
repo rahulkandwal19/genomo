@@ -12,10 +12,8 @@ int main(){
     
     GenomoKit::PathogenNetwork pn_load = GenomoKit::PathogenNetwork("test");
     pn_load.save("testSave");
-    
-    /*
-    
-    NOTE: Following is demonstration of manual insertion usage
+ 
+    // NOTE: Following is demonstration of manual insertion usage
 
     GenomoKit::SequenceMatcher matcher = GenomoKit::SequenceMatcher();
     GenomoKit::PathogenNetwork pn = GenomoKit::PathogenNetwork();
@@ -69,8 +67,7 @@ int main(){
 
 
     pn.save("testSaveManual");
-    */
-
+    
     
 
     // Demonstration of working and handling of GenomoKit

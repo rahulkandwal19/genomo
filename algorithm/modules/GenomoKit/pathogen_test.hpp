@@ -157,16 +157,26 @@ namespace GenomoKit{
                 this->pathogen_network = pathogen_network;
             }
 
-            ZoonosisTestResult is_pathogen_zoonotic(float kmer_threshold,int kmer_size,float alignment_threshold, int threat = 4, int maxPaths=1){
-                //[1.] Insert new node to correct place in graph network on basis of dna similarity score
-                //While saving matching cds in ZoonosisTestResult object
-                insert_node_on_dna_similarity_connections(test_node,kmer_threshold,kmer_size,alignment_threshold);
+        
+            ZoonosisTestResult is_pathogen_zoonotic(float kmer_threshold, int kmer_size, float alignment_threshold, int threat = 2, int maxPaths = 2) {
+    cout << "=== Starting Analysis ===" << endl;
+    cout << "Parameters: kmer_threshold=" << kmer_threshold 
+         << ", kmer_size=" << kmer_size
+         << ", alignment_threshold=" << alignment_threshold
+         << ", threat=" << threat
+         << ", maxPaths=" << maxPaths << endl;
+    
+    // [1.] Insert new node
+    insert_node_on_dna_similarity_connections(test_node, kmer_threshold, kmer_size, alignment_threshold);
+    cout << "Found " << result.matched_cds.size() << " CDS matches" << endl;
 
-                //[2.] Find Shortest paths to zoonotic nodes
-                getPossiblePaths(test_node->node_idx,maxPaths,threat);
+    // [2.] Find paths
+    getPossiblePaths(test_node->node_idx, maxPaths, threat);
+    cout << "Found " << result.paths.size() << " pathogen paths" << endl;
 
-                return result;
-            }
+    cout << "=== Analysis Complete ===" << endl;
+    return result;
+}
     };
 }
 

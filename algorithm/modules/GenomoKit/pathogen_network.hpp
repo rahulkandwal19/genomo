@@ -213,81 +213,92 @@ namespace GenomoKit{
         
                 file.close();
             }  
+           PathogenNetwork(string path_name) {
+    fstream file;
+    file.open(path_name + ".gpn", ios::in);
+    if (!file.is_open()) {
+        cerr << "Failed to open file for loading." << endl;
+        return;
+    }
 
-            PathogenNetwork(string path_name) {
-                fstream file;
-                file.open(path_name + ".gpn", ios::in);
-                if (!file.is_open()) {
-                    cerr << "Failed to open file for loading." << endl;
-                    return;
-                }
+    string record;
+    while (getline(file, record, ';')) {
+        // Skip empty records
+        if (record.empty()) continue;
         
-                string pathogen_record;
-                //Extracting record one by one 
-                while (getline(file, pathogen_record,';')) {
+        vector<string> segments;
+        stringstream record_stream(record);
+        string segment;
+        
+        // Split into 4 segments
+        for (int i = 0; i < 4; i++) {
+            getline(record_stream, segment, ':');
+            segments.push_back(segment);
+        }
 
-                    //Remove front & rear unwanted strings
-                    int start = pathogen_record.find_first_not_of('\n');
-                    int end = pathogen_record.find_last_not_of('\n');
-                    pathogen_record= (start == std::string::npos) ? "" : pathogen_record.substr(start, end - start + 1);
-                    if (pathogen_record.empty()) continue;
+        if (segments.size() < 4) {
+            cerr << "Skipping malformed record: " << record << endl;
+            continue;
+        }
 
-                    //Retrive diffrent segments of record
-                    stringstream record_stream(pathogen_record);
-                    string segment;
-                    vector<string> segments;
-                    while (std::getline(record_stream,segment,':')){
-                        segments.push_back(segment);
-                    }
-                    string data_segment = segments[0];
-                    string sequence_segment = segments[1];
-                    string cds_segment = segments[2];
-                    string edge_segment = segments[3];
+        string data_segment = segments[0];
+        string sequence_segment = segments[1];
+        string cds_segment = segments[2];
+        string edge_segment = segments[3];
 
-                    //Retrive data from data segment
-                    int seprator1 = data_segment.find('|');
-                    int seprator2 = data_segment.find('|', seprator1 + 1);
-                    int current_idx = stoi(data_segment.substr(0, seprator1));
-                    string id = data_segment.substr(seprator1 + 1, seprator2 - seprator1 - 1);
-                   
-                    int seprator3 = data_segment.find('[', seprator2 + 1);
-                    int seprator4 = data_segment.find(',', seprator3 + 1);
-                    int threat = stoi(data_segment.substr(seprator3+1, seprator4));
-                    //Retrive Data from sequence segment
-                    string sequence = sequence_segment.substr(1,sequence_segment.size()-1);
+        try {
+            // Parse data segment
+            size_t sep1 = data_segment.find('|');
+            size_t sep2 = data_segment.find('|', sep1 + 1);
+            
+            int current_idx = stoi(data_segment.substr(0, sep1));
+            string id = data_segment.substr(sep1 + 1, sep2 - sep1 - 1);
+            int threat = stoi(data_segment.substr(sep2 + 1));
 
-                    //Retrive data from cds segment
-                    cds_segment = cds_segment.substr(1,sequence_segment.size()-1);
-                    stringstream cds_stream = stringstream(cds_segment);
-                    string cds_data;
-                    vector<GenomoKit::Cds*> pathogen_cds;
-                    while(cds_stream>>cds_data){
-                        cds_data = cds_data.substr(0,sequence_segment.size()-2);
-                        int seperator = cds_data.find('|');
-                        string cds_id = cds_data.substr(0, seperator);
-                        string cds_sequence = cds_data.substr(seperator + 1, cds_data.size());
-                        GenomoKit::Cds *newCds = new  GenomoKit::Cds(cds_id,cds_sequence);
-                        pathogen_cds.push_back(newCds);
-                    }
-                    
-                    // Add Node to Graph
-                    graph.insert_node(id,sequence,pathogen_cds,threat);
+            // Parse sequence
+            string sequence = sequence_segment;
 
-                    //Retrive edges from edge segment
-                    edge_segment = edge_segment.substr(1,sequence_segment.size()-1);
-                    stringstream edge_stream(edge_segment);
-                    string edge;
-                    while (std::getline(edge_stream,edge,',')){
-
-                        int seprator = edge.find('-');
-                        int destination = stoi(edge.substr(1, seprator-1));
-                        int weight = stoi(edge.substr(seprator+1, edge.size() -seprator - 2));
-                        
-                        //Add Edges in graph
-                        graph.add_edge(current_idx,destination,weight);
-                    }
-                }                 
+            // Parse CDS
+            vector<GenomoKit::Cds*> pathogen_cds;
+            stringstream cds_stream(cds_segment);
+            string cds_line;
+            while (getline(cds_stream, cds_line)) {
+                if (cds_line.empty()) continue;
+                size_t sep = cds_line.find('|');
+                if (sep == string::npos) continue;
+                
+                string cds_id = cds_line.substr(0, sep);
+                string cds_sequence = cds_line.substr(sep + 1);
+                pathogen_cds.push_back(new GenomoKit::Cds(cds_id, cds_sequence));
             }
+
+            // Add node to graph
+            graph.insert_node(id, sequence, pathogen_cds, threat);
+
+            // Parse edges
+            stringstream edge_stream(edge_segment);
+            string edge_data;
+            while (getline(edge_stream, edge_data, ',')) {
+                if (edge_data.empty()) continue;
+                
+                // Remove brackets
+                if (edge_data.front() == '[') edge_data = edge_data.substr(1);
+                if (edge_data.back() == ']') edge_data = edge_data.substr(0, edge_data.size() - 1);
+                
+                size_t sep = edge_data.find('-');
+                if (sep == string::npos) continue;
+                
+                int destination = stoi(edge_data.substr(0, sep));
+                int weight = stoi(edge_data.substr(sep + 1));
+                graph.add_edge(current_idx, destination, weight);
+            }
+        } catch (const exception& e) {
+            cerr << "Error parsing record: " << e.what() << endl;
+        }
+    }
+    cerr << "Successfully loaded " << graph.node_list.size() << " pathogen records" << endl;
+}
+       
     };
 }
 //============================================================================================
