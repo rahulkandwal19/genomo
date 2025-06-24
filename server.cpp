@@ -26,10 +26,17 @@ float safe_stof(const crow::json::rvalue& val, float fallback = 0.0f) {
 int main() {
     crow::SimpleApp app;
 
-    // Serve index.html at root "/"
-   // Add this after your existing routes
+    CROW_ROUTE(app, "/")([]() {
+        std::ifstream file("webapp/frontend/index.html");
+        if (!file.is_open()) return crow::response(404, "index.html not found");
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        return crow::response(buffer.str());
+    });
+
     CROW_ROUTE(app, "/<path>")([](std::string path) {
-    // Build the full file path
+
     std::string file_path = "webapp/frontend/" + path;
     
     // Check for specific file types
@@ -49,7 +56,7 @@ int main() {
     return crow::response(404, "Invalid file type");
 });
 
-    // Serve static files like landing.js
+    // Serve static files
     CROW_ROUTE(app, "/pages/landing_page/<string>")([](std::string filename) {
         std::ifstream file("webapp/frontend/pages/landing_page/" + filename);
         if (!file.is_open()) return crow::response(404, "File not found");
@@ -100,7 +107,7 @@ CROW_ROUTE(app, "/calculate-similarity").methods(crow::HTTPMethod::Post)([](cons
         if (!body) return crow::response(400, "Invalid JSON");
 
         try {
-            // Defensive input extraction
+            
             string dna = body["dna"].s();
             float kmer = safe_stof(body["kmer"], 0.5);
             float cds = safe_stof(body["cds"], 0.7);
